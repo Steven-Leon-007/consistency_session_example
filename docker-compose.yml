@@ -1,3 +1,4 @@
+version: '3.8'
 networks:
   demo-net:
     driver: bridge
@@ -12,10 +13,11 @@ services:
       - "4001:4001"
     networks:
       - demo-net
+      
   replica2:
     build: ./replica
     environment:
-      - REPLICA_NAME=replica2
+      - REPLICA_NAME=replica2  
       - PORT=4002
     ports:
       - "4002:4002"
