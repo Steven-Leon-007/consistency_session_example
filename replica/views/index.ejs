@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SocialNet - Distributed Social Network</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            color: #1c1e21;
+        }
+
+        .header {
+            background-color: #fff;
+            border-bottom: 1px solid #dadde1;
+            padding: 8px 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #1877f2;
+            text-decoration: none;
+        }
+
+        .server-info {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            font-size: 14px;
+            color: #65676b;
+        }
+
+        .server-badge {
+            background-color: #e4e6eb;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+
+        .sync-btn {
+            background-color: #1877f2;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+
+        .sync-btn:hover {
+            background-color: #166fe5;
+        }
+
+        .sync-btn:disabled {
+            background-color: #e4e6eb;
+            color: #bcc0c4;
+            cursor: not-allowed;
+        }
+
+        .container {
+            max-width: 680px;
+            margin: 24px auto;
+            padding: 0 16px;
+        }
+
+        .create-post {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .create-post-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #e4e6eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: #1877f2;
+            font-size: 16px;
+        }
+
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        .input-group input,
+        .input-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccd0d5;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 15px;
+            background-color: #f0f2f5;
+            resize: vertical;
+        }
+
+        .input-group input:focus,
+        .input-group textarea:focus {
+            outline: none;
+            background-color: #fff;
+            border-color: #1877f2;
+        }
+
+        .input-group textarea {
+            min-height: 80px;
+        }
+
+        .post-btn {
+            width: 100%;
+            background-color: #1877f2;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .post-btn:hover {
+            background-color: #166fe5;
+        }
+
+        .post-btn:disabled {
+            background-color: #e4e6eb;
+            color: #bcc0c4;
+            cursor: not-allowed;
+        }
+
+        .posts-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .post {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .post-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .post-author-info {
+            flex: 1;
+        }
+
+        .post-author {
+            font-weight: 600;
+            font-size: 15px;
+            color: #050505;
+            margin-bottom: 2px;
+        }
+
+        .post-meta {
+            font-size: 13px;
+            color: #65676b;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .post-replica {
+            background-color: #e7f3ff;
+            color: #1877f2;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .post-content {
+            font-size: 15px;
+            line-height: 1.5;
+            color: #050505;
+            margin-bottom: 8px;
+        }
+
+        .post-timestamp {
+            font-size: 12px;
+            color: #8a8d91;
+        }
+
+        .no-posts {
+            text-align: center;
+            padding: 40px;
+            color: #65676b;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #65676b;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #1877f2;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .alert-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .refresh-btn,
+        .clear-btn {
+            flex: 1;
+            background-color: #fff;
+            color: #050505;
+            border: 1px solid #ccd0d5;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .refresh-btn:hover,
+        .clear-btn:hover {
+            background-color: #f0f2f5;
+        }
+
+        .clear-btn {
+            color: #e4405f;
+            border-color: #e4405f;
+        }
+
+        .clear-btn:hover {
+            background-color: #fff0f3;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 16px auto;
+            }
+            
+            .server-info {
+                font-size: 12px;
+                gap: 10px;
+            }
+            
+            .logo {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <a href="/" class="logo">SocialNet</a>
+            <div class="server-info">
+                <span class="server-badge">Server: <strong id="server-name"><%= replica %></strong></span>
+                <span>Session: <span id="session-id"><%= sessionId.substring(0, 8) %>...</span></span>
+                <button class="sync-btn" onclick="syncPosts()">Sync</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="alert" class="alert"></div>
+
+        <div class="create-post">
+            <div class="create-post-header">
+                <div class="user-avatar" id="user-avatar">U</div>
+                <h3 style="color: #050505; font-size: 16px;">Create Post</h3>
+            </div>
+            <form id="post-form">
+                <div class="input-group">
+                    <input type="text" id="author" placeholder="Your name" required>
+                </div>
+                <div class="input-group">
+                    <textarea id="content" placeholder="What's on your mind?" required></textarea>
+                </div>
+                <button type="submit" class="post-btn">Post</button>
+            </form>
+        </div>
+
+        <div class="controls">
+            <button class="refresh-btn" onclick="loadPosts()">Refresh</button>
+            <button class="clear-btn" onclick="clearPosts()">Clear All Posts</button>
+        </div>
+
+        <div class="posts-container" id="posts-container">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p style="margin-top: 12px;">Loading posts...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentAuthor = '';
+        const authorInput = document.getElementById('author');
+        const contentInput = document.getElementById('content');
+        const userAvatar = document.getElementById('user-avatar');
+
+        // Cargar autor del localStorage
+        const savedAuthor = localStorage.getItem('author');
+        if (savedAuthor) {
+            authorInput.value = savedAuthor;
+            currentAuthor = savedAuthor;
+            updateAvatar(savedAuthor);
+        }
+
+        authorInput.addEventListener('input', (e) => {
+            currentAuthor = e.target.value;
+            updateAvatar(e.target.value);
+            if (e.target.value) {
+                localStorage.setItem('author', e.target.value);
+            }
+        });
+
+        function updateAvatar(name) {
+            if (name) {
+                userAvatar.textContent = name.charAt(0).toUpperCase();
+            } else {
+                userAvatar.textContent = 'U';
+            }
+        }
+
+        function showAlert(message, type = 'info') {
+            const alert = document.getElementById('alert');
+            alert.className = `alert alert-${type} show`;
+            alert.textContent = message;
+            setTimeout(() => {
+                alert.className = 'alert';
+            }, 3000);
+        }
+
+        async function loadPosts(sync = false) {
+            try {
+                const url = sync ? '/posts?sync=true' : '/posts';
+                const response = await fetch(url, {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                displayPosts(data.posts);
+            } catch (error) {
+                showAlert('Error loading posts', 'warning');
+                console.error('Error:', error);
+            }
+        }
+
+        function displayPosts(posts) {
+            const container = document.getElementById('posts-container');
+            
+            if (posts.length === 0) {
+                container.innerHTML = '<div class="no-posts">No posts yet. Be the first to share something!</div>';
+                return;
+            }
+
+            // Ordenar por timestamp descendente
+            posts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            container.innerHTML = posts.map(post => {
+                const date = new Date(post.timestamp);
+                const timeAgo = getTimeAgo(date);
+                const avatar = post.author.charAt(0).toUpperCase();
+                
+                return `
+                    <div class="post">
+                        <div class="post-header">
+                            <div class="user-avatar">${avatar}</div>
+                            <div class="post-author-info">
+                                <div class="post-author">${escapeHtml(post.author)}</div>
+                                <div class="post-meta">
+                                    <span>${timeAgo}</span>
+                                    <span>•</span>
+                                    <span class="post-replica">${post.replica}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="post-content">${escapeHtml(post.content)}</div>
+                        <div class="post-timestamp">${date.toLocaleString()}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            
+            if (seconds < 60) return 'Just now';
+            if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+            if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+            return `${Math.floor(seconds / 86400)}d ago`;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        document.getElementById('post-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const author = authorInput.value.trim();
+            const content = contentInput.value.trim();
+            
+            if (!author || !content) {
+                showAlert('Please fill in all fields', 'warning');
+                return;
+            }
+
+            const submitBtn = e.target.querySelector('.post-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Posting...';
+
+            try {
+                const response = await fetch('/post', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ author, content })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    contentInput.value = '';
+                    showAlert('Post created successfully!', 'success');
+                    await loadPosts();
+                } else {
+                    showAlert(data.error || 'Error creating post', 'warning');
+                }
+            } catch (error) {
+                showAlert('Error creating post', 'warning');
+                console.error('Error:', error);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Post';
+            }
+        });
+
+        async function syncPosts() {
+            const syncBtn = document.querySelector('.sync-btn');
+            const originalText = syncBtn.textContent;
+            syncBtn.disabled = true;
+            syncBtn.textContent = 'Syncing...';
+
+            try {
+                const response = await fetch('/sync', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                showAlert(`Synchronized! Merged ${data.mergedPosts} posts`, 'success');
+                await loadPosts();
+            } catch (error) {
+                showAlert('Error syncing posts', 'warning');
+                console.error('Error:', error);
+            } finally {
+                syncBtn.disabled = false;
+                syncBtn.textContent = originalText;
+            }
+        }
+
+        async function clearPosts() {
+            if (!confirm('Are you sure you want to clear all posts from this replica?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/clear', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                showAlert(data.message, 'info');
+                await loadPosts();
+            } catch (error) {
+                showAlert('Error clearing posts', 'warning');
+                console.error('Error:', error);
+            }
+        }
+
+        // Cargar posts al iniciar
+        loadPosts();
+
+        // Auto-refresh cada 10 segundos
+        setInterval(() => loadPosts(), 10000);
+    </script>
+</body>
+</html>

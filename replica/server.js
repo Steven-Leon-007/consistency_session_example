@@ -3,9 +3,19 @@ const bodyParser = require('body-parser');
 const axios = require('axios');
 const cors = require('cors');
 const session = require('express-session');
+const path = require('path');
 
 const app = express();
+
+// Configurar EJS
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
+// Servir archivos estáticos
+app.use(express.static(path.join(__dirname, 'public')));
+
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors({
   origin: true,
   credentials: true
@@ -49,6 +59,23 @@ app.use((req, res, next) => {
     lastSync[req.session.id] = Date.now();
   }
   next();
+});
+
+// Ruta principal - Renderiza la vista
+app.get('/', async (req, res) => {
+  try {
+    res.render('index', {
+      replica: replicaName,
+      sessionId: req.session.id,
+      posts: posts.filter(post => 
+        post.replica === replicaName || 
+        (lastSync[req.session.id] && new Date(post.timestamp).getTime() <= lastSync[req.session.id])
+      )
+    });
+  } catch (error) {
+    console.error('Error rendering view:', error);
+    res.status(500).send('Error loading page');
+  }
 });
 
 function addPost(author, content, sessionId) {
