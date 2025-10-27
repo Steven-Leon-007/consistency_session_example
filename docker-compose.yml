@@ -1,0 +1,46 @@
+networks:
+  demo-net:
+    driver: bridge
+
+services:
+  replica1:
+    build: ./replica
+    environment:
+      - REPLICA_NAME=replica1
+      - PORT=4001
+    ports:
+      - "4001:4001"
+    networks:
+      - demo-net
+  replica2:
+    build: ./replica
+    environment:
+      - REPLICA_NAME=replica2
+      - PORT=4002
+    ports:
+      - "4002:4002"
+    networks:
+      - demo-net
+
+  replica3:
+    build: ./replica
+    environment:
+      - REPLICA_NAME=replica3
+      - PORT=4003
+    ports:
+      - "4003:4003"
+    networks:
+      - demo-net
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - replica1
+      - replica2
+      - replica3
+    networks:
+      - demo-net
