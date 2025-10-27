@@ -40,6 +40,7 @@ const port = parseInt(process.env.PORT || '4001');
 // "Base de datos" en memoria (para demo)
 let posts = [];
 let lastSync = {}; // Para trackear última sincronización por sesión
+let clearCommands = []; // Registro de comandos de limpieza con timestamp
 
 const otherReplicas = {
   replica1: 'http://replica1:4001',
@@ -137,7 +138,10 @@ app.post('/post', async (req, res) => {
 
 // Sincronización manual - sincroniza todas las réplicas
 app.post('/sync', async (req, res) => {
-  // Primero obtenemos posts de otras réplicas
+  // Primero sincronizamos comandos de limpieza de otras réplicas
+  await syncClearCommands();
+  
+  // Luego obtenemos posts de otras réplicas
   const mergedCount = await syncWithPeers(req.session.id);
   
   // Luego propagamos todos nuestros posts a las demás réplicas
@@ -150,6 +154,12 @@ app.post('/sync', async (req, res) => {
         await axios.post(`${peer}/internal/post`, post, { timeout: 2000 })
           .catch(err => console.log(`Failed to propagate post ${post.id} to ${peer}`));
       }
+      
+      // Enviamos nuestros comandos de limpieza
+      for (const clearCmd of clearCommands) {
+        await axios.post(`${peer}/internal/clear`, clearCmd, { timeout: 2000 })
+          .catch(err => console.log(`Failed to propagate clear command to ${peer}`));
+      }
     } catch (err) {
       console.log(`Sync failed with ${peer}`);
     }
@@ -159,7 +169,8 @@ app.post('/sync', async (req, res) => {
     message: `Full synchronization completed on ${replicaName}`,
     sessionId: req.session.id,
     mergedPosts: mergedCount,
-    propagatedPosts: posts.filter(post => post.replica === replicaName).length
+    propagatedPosts: posts.filter(post => post.replica === replicaName).length,
+    clearCommandsSynced: clearCommands.length
   });
 });
 
@@ -207,6 +218,44 @@ async function syncWithPeers(sessionId) {
   return merged;
 }
 
+// Función para sincronizar comandos de limpieza
+async function syncClearCommands() {
+  const peers = getPeers();
+  
+  for (const peer of peers) {
+    try {
+      const response = await axios.get(`${peer}/internal/clear-commands`, { 
+        timeout: 2000
+      });
+      
+      const remoteClearCommands = response.data.clearCommands || [];
+      for (const clearCmd of remoteClearCommands) {
+        // Si no tenemos este comando de limpieza, lo aplicamos
+        if (!clearCommands.find(c => c.id === clearCmd.id)) {
+          applyClearCommand(clearCmd);
+        }
+      }
+    } catch (err) {
+      console.log(`Cannot sync clear commands with ${peer}`);
+    }
+  }
+}
+
+// Aplicar un comando de limpieza
+function applyClearCommand(clearCmd) {
+  // Agregamos el comando a nuestra lista
+  clearCommands.push(clearCmd);
+  
+  // Limpiamos los posts según el comando
+  const clearTime = new Date(clearCmd.timestamp).getTime();
+  posts = posts.filter(post => {
+    const postTime = new Date(post.timestamp).getTime();
+    return postTime > clearTime; // Solo mantenemos posts posteriores al clear
+  });
+  
+  console.log(`Applied clear command from ${clearCmd.replica} at ${clearCmd.timestamp}`);
+}
+
 // Endpoint interno para sincronización
 app.get('/internal/posts', (req, res) => {
   const since = parseInt(req.query.since) || 0;
@@ -214,6 +263,20 @@ app.get('/internal/posts', (req, res) => {
     new Date(post.timestamp).getTime() > since
   );
   res.json({ posts: filteredPosts });
+});
+
+// Endpoint interno para obtener comandos de limpieza
+app.get('/internal/clear-commands', (req, res) => {
+  res.json({ clearCommands });
+});
+
+// Endpoint interno para recibir comandos de limpieza
+app.post('/internal/clear', (req, res) => {
+  const clearCmd = req.body;
+  if (!clearCommands.find(c => c.id === clearCmd.id)) {
+    applyClearCommand(clearCmd);
+  }
+  res.json({ message: 'Clear command received' });
 });
 
 // Propagación asíncrona de posts
@@ -237,9 +300,20 @@ app.post('/internal/post', (req, res) => {
 });
 
 app.post('/clear', (req, res) => {
-  posts = [];
-  lastSync = {};
-  res.json({ message: `Cleared posts on ${replicaName}` });
+  // Crear un comando de limpieza
+  const clearCmd = {
+    id: `clear-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    timestamp: new Date().toISOString(),
+    replica: replicaName
+  };
+  
+  // Aplicar localmente
+  applyClearCommand(clearCmd);
+  
+  res.json({ 
+    message: `Cleared posts on ${replicaName}. Use Sync to propagate to other replicas.`,
+    clearCommand: clearCmd
+  });
 });
 
 app.listen(port, () => {
